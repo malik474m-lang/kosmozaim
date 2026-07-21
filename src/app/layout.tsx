@@ -27,7 +27,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ru">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.svg" sizes="any" />
       </head>
       <body className="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
         <GeoProvider>
