@@ -381,7 +381,7 @@ export default function AdminArticles() {
                     className="input-field"
                     value={form.coverImage}
                     onChange={(e) => updateField("coverImage", e.target.value)}
-                    placeholder="https://example.com/image.jpg"
+                    placeholder="/images/article.jpg или https://example.com/image.jpg"
                   />
                 </div>
               </div>

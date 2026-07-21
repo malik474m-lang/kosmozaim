@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { offers } from "@/db/schema";
 import { eq, and, ne, asc } from "drizzle-orm";
 import Link from "next/link";
-import { formatMoney, categoryLabels } from "@/lib/utils";
+import { formatMoney, categoryLabels, normalizeMediaUrl } from "@/lib/utils";
 import type { Offer } from "@/db/schema";
 
 interface SimilarOffersProps {
@@ -37,8 +37,8 @@ export default async function SimilarOffers({ currentOffer }: SimilarOffersProps
             className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-primary hover:bg-primary/5 transition-all"
           >
             <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {offer.logoUrl ? (
-                <img src={offer.logoUrl} alt="" className="w-full h-full object-contain p-0.5" />
+              {normalizeMediaUrl(offer.logoUrl) ? (
+                <img src={normalizeMediaUrl(offer.logoUrl)} alt="" className="w-full h-full object-contain p-0.5" />
               ) : (
                 <span className="text-lg">🏦</span>
               )}

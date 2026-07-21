@@ -4,6 +4,7 @@ import { offers, articles } from "@/db/schema";
 import { eq, asc, desc } from "drizzle-orm";
 import OfferCard from "@/components/OfferCard";
 import JsonLd from "@/components/JsonLd";
+import { normalizeMediaUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -129,10 +130,10 @@ export default async function HomePage() {
                 href={`/articles/${article.slug}`}
                 className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden card-hover block"
               >
-                {article.coverImage && (
+                {normalizeMediaUrl(article.coverImage) && (
                   <div className="h-40 bg-gray-100">
                     <img
-                      src={article.coverImage}
+                      src={normalizeMediaUrl(article.coverImage)}
                       alt={article.title}
                       className="w-full h-full object-cover"
                     />

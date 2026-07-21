@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { formatMoney, formatDays, categoryLabels } from "@/lib/utils";
+import { formatMoney, formatDays, categoryLabels, normalizeMediaUrl } from "@/lib/utils";
 import { useGeo } from "@/components/GeoProvider";
 import type { Offer } from "@/db/schema";
 
@@ -157,8 +157,8 @@ export default function CalculatorClient() {
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {offer.logoUrl ? (
-                    <img src={offer.logoUrl} alt={offer.title} className="w-full h-full object-contain p-0.5" />
+                  {normalizeMediaUrl(offer.logoUrl) ? (
+                    <img src={normalizeMediaUrl(offer.logoUrl)} alt={offer.title} className="w-full h-full object-contain p-0.5" />
                   ) : (
                     <span className="text-xl">🏦</span>
                   )}

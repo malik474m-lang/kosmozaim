@@ -3,7 +3,7 @@ import { offers, reviews } from "@/db/schema";
 import { eq, and, avg } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { formatMoney, formatDays, categoryLabels, borrowerLabels, generateSeoTags } from "@/lib/utils";
+import { formatMoney, formatDays, categoryLabels, borrowerLabels, generateSeoTags, normalizeMediaUrl } from "@/lib/utils";
 import ReviewSection from "@/components/ReviewSection";
 import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -50,6 +50,7 @@ export default async function OfferPage({ params }: PageProps) {
   }
 
   const o = offer[0];
+  const logoUrl = normalizeMediaUrl(o.logoUrl);
 
   // Генерируем SEO-теги
   const seoTags = o.seoKeywords
@@ -89,8 +90,8 @@ export default async function OfferPage({ params }: PageProps) {
           {/* Header */}
           <div className="flex items-start gap-4 mb-6">
             <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-              {o.logoUrl ? (
-                <img src={o.logoUrl} alt={o.title} className="w-full h-full object-contain p-2" />
+              {logoUrl ? (
+                <img src={logoUrl} alt={o.title} className="w-full h-full object-contain p-2" />
               ) : (
                 <span className="text-4xl">🏦</span>
               )}

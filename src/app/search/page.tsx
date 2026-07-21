@@ -3,6 +3,7 @@ import { offers, articles, type Offer, type Article } from "@/db/schema";
 import { eq, or, ilike, and } from "drizzle-orm";
 import OfferCard from "@/components/OfferCard";
 import Link from "next/link";
+import { normalizeMediaUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -119,10 +120,10 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 href={`/articles/${article.slug}`}
                 className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden card-hover block"
               >
-                {article.coverImage ? (
+                {normalizeMediaUrl(article.coverImage) ? (
                   <div className="h-40 bg-gray-100">
                     <img
-                      src={article.coverImage}
+                      src={normalizeMediaUrl(article.coverImage)}
                       alt={article.title}
                       className="w-full h-full object-cover"
                     />

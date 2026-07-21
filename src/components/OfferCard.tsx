@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatMoney, formatDays, generateSeoTags } from "@/lib/utils";
+import { formatMoney, formatDays, generateSeoTags, normalizeMediaUrl } from "@/lib/utils";
 import type { Offer } from "@/db/schema";
 import FavoriteButton from "./FavoriteButton";
 
@@ -11,6 +11,7 @@ export default function OfferCard({ offer }: OfferCardProps) {
   const seoTags = offer.seoKeywords
     ? offer.seoKeywords.split(",").map((t) => t.trim()).filter(Boolean)
     : generateSeoTags(offer.category, offer.title, offer.amountMax, offer.freeTermDays);
+  const logoUrl = normalizeMediaUrl(offer.logoUrl);
 
   return (
     <article 
@@ -21,9 +22,9 @@ export default function OfferCard({ offer }: OfferCardProps) {
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         {/* Logo */}
         <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-          {offer.logoUrl ? (
+          {logoUrl ? (
             <img
-              src={offer.logoUrl}
+              src={logoUrl}
               alt={`Логотип ${offer.title}`}
               className="w-full h-full object-contain p-1"
               itemProp="image"

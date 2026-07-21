@@ -274,7 +274,7 @@ export default function AdminOffers() {
                     className="input-field"
                     value={form.logoUrl}
                     onChange={(e) => updateField("logoUrl", e.target.value)}
-                    placeholder="https://example.com/logo.png"
+                    placeholder="/images/logo.png или https://example.com/logo.png"
                   />
                 </div>
 

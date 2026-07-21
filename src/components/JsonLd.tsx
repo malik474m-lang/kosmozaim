@@ -1,4 +1,5 @@
 import type { Offer, Article } from "@/db/schema";
+import { normalizeMediaUrl } from "@/lib/utils";
 
 interface OrganizationSchemaProps {
   type: "organization";
@@ -110,7 +111,7 @@ export default function JsonLd(props: JsonLdProps) {
         "@type": "Article",
         headline: props.article.title,
         description: props.article.excerpt || props.article.metaDescription || "",
-        image: props.article.coverImage || `${baseUrl}/og-image.png`,
+        image: normalizeMediaUrl(props.article.coverImage) || `${baseUrl}/og-image.png`,
         datePublished: props.article.createdAt,
         dateModified: props.article.updatedAt,
         author: {

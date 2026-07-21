@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/db";
 import { articles } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { normalizeMediaUrl } from "@/lib/utils";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -42,10 +43,10 @@ export default async function ArticlesPage() {
               href={`/articles/${article.slug}`}
               className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden card-hover block"
             >
-              {article.coverImage ? (
+              {normalizeMediaUrl(article.coverImage) ? (
                 <div className="h-48 bg-gray-100">
                   <img
-                    src={article.coverImage}
+                    src={normalizeMediaUrl(article.coverImage)}
                     alt={article.title}
                     className="w-full h-full object-cover"
                   />

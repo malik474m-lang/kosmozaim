@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { normalizeMediaUrl } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -32,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: "article",
       publishedTime: article[0].createdAt.toISOString(),
       modifiedTime: article[0].updatedAt.toISOString(),
-      images: article[0].coverImage ? [article[0].coverImage] : [],
+      images: normalizeMediaUrl(article[0].coverImage) ? [normalizeMediaUrl(article[0].coverImage)] : [],
     },
   };
 }
@@ -52,6 +53,7 @@ export default async function ArticlePage({ params }: PageProps) {
   }
 
   const a = article[0];
+  const coverImage = normalizeMediaUrl(a.coverImage);
 
   // Разбиваем контент на параграфы для лучшего отображения
   const paragraphs = a.content.split("\n\n").filter(Boolean);
@@ -69,10 +71,10 @@ export default async function ArticlePage({ params }: PageProps) {
           ]}
         />
 
-        {a.coverImage && (
+        {coverImage && (
           <div className="mb-8 rounded-xl overflow-hidden">
             <img
-              src={a.coverImage}
+              src={coverImage}
               alt={a.title}
               className="w-full h-64 sm:h-80 object-cover"
             />

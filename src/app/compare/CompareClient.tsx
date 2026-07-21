@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { formatMoney, formatDays, categoryLabels } from "@/lib/utils";
+import { formatMoney, formatDays, categoryLabels, normalizeMediaUrl } from "@/lib/utils";
 import { useGeo } from "@/components/GeoProvider";
 import type { Offer } from "@/db/schema";
 
@@ -126,8 +126,8 @@ export default function CompareClient() {
                       <th key={offer.id} className="p-4 text-center min-w-[150px]">
                         <div className="flex flex-col items-center gap-2">
                           <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                            {offer.logoUrl ? (
-                              <img src={offer.logoUrl} alt="" className="w-full h-full object-contain p-1" />
+                            {normalizeMediaUrl(offer.logoUrl) ? (
+                              <img src={normalizeMediaUrl(offer.logoUrl)} alt="" className="w-full h-full object-contain p-1" />
                             ) : (
                               <span className="text-xl">🏦</span>
                             )}

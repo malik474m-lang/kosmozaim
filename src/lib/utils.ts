@@ -44,6 +44,31 @@ export function formatDays(days: number): string {
   return `${days} дней`;
 }
 
+export function normalizeMediaUrl(url?: string | null): string {
+  if (!url) return "";
+
+  let cleaned = url.trim();
+  if (!cleaned) return "";
+
+  if (cleaned.startsWith("/public/")) {
+    return cleaned.replace(/^\/public\//, "/");
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (siteUrl && cleaned.startsWith(`${siteUrl}/public/`)) {
+    return `${siteUrl}/${cleaned.slice(`${siteUrl}/public/`.length)}`;
+  }
+
+  const noWwwSiteUrl = siteUrl?.replace("://www.", "://");
+  const wwwSiteUrl = noWwwSiteUrl ? noWwwSiteUrl.replace("://", "://www.") : undefined;
+
+  if (wwwSiteUrl && cleaned.startsWith(`${wwwSiteUrl}/public/`)) {
+    return `${wwwSiteUrl}/${cleaned.slice(`${wwwSiteUrl}/public/`.length)}`;
+  }
+
+  return cleaned;
+}
+
 export const categoryLabels: Record<string, string> = {
   microloans: "Займы",
   credits: "Кредиты",
