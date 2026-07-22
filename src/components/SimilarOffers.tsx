@@ -1,6 +1,8 @@
+import { db } from "@/db";
+import { offers } from "@/db/schema";
+import { eq, and, ne, asc } from "drizzle-orm";
 import Link from "next/link";
 import { formatMoney, categoryLabels, normalizeMediaUrl } from "@/lib/utils";
-import { getSimilarOffers } from "@/lib/cached-data";
 import type { Offer } from "@/db/schema";
 
 interface SimilarOffersProps {
@@ -8,7 +10,19 @@ interface SimilarOffersProps {
 }
 
 export default async function SimilarOffers({ currentOffer }: SimilarOffersProps) {
-  const similar = await getSimilarOffers(currentOffer.category, currentOffer.id);
+  // Находим похожие предложения по категории
+  const similar = await db
+    .select()
+    .from(offers)
+    .where(
+      and(
+        eq(offers.isActive, true),
+        eq(offers.category, currentOffer.category),
+        ne(offers.id, currentOffer.id)
+      )
+    )
+    .orderBy(asc(offers.sortOrder))
+    .limit(4);
 
   if (similar.length === 0) return null;
 

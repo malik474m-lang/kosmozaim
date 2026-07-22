@@ -1,3 +1,6 @@
+import { db } from "@/db";
+import { articles } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -5,7 +8,6 @@ import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { normalizeMediaUrl } from "@/lib/utils";
 import { autoLinkText } from "@/lib/autolinks";
-import { getPublishedArticleBySlug } from "@/lib/cached-data";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -13,36 +15,45 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const article = await getPublishedArticleBySlug(slug);
+  const article = await db
+    .select()
+    .from(articles)
+    .where(and(eq(articles.slug, slug), eq(articles.isPublished, true)))
+    .limit(1);
 
-  if (!article) {
+  if (article.length === 0) {
     return { title: "Статья не найдена" };
   }
 
   return {
-    title: article.metaTitle || article.title + " | Космозайм",
-    description: article.metaDescription || article.excerpt || "",
+    title: article[0].metaTitle || article[0].title + " | Космозайм",
+    description: article[0].metaDescription || article[0].excerpt || "",
     openGraph: {
-      title: article.title,
-      description: article.excerpt || "",
+      title: article[0].title,
+      description: article[0].excerpt || "",
       type: "article",
-      publishedTime: article.createdAt.toISOString(),
-      modifiedTime: article.updatedAt.toISOString(),
-      images: normalizeMediaUrl(article.coverImage) ? [normalizeMediaUrl(article.coverImage)] : [],
+      publishedTime: article[0].createdAt.toISOString(),
+      modifiedTime: article[0].updatedAt.toISOString(),
+      images: normalizeMediaUrl(article[0].coverImage) ? [normalizeMediaUrl(article[0].coverImage)] : [],
     },
   };
 }
 
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function ArticlePage({ params }: PageProps) {
   const { slug } = await params;
-  const a = await getPublishedArticleBySlug(slug);
+  const article = await db
+    .select()
+    .from(articles)
+    .where(and(eq(articles.slug, slug), eq(articles.isPublished, true)))
+    .limit(1);
 
-  if (!a) {
+  if (article.length === 0) {
     notFound();
   }
 
+  const a = article[0];
   const coverImage = normalizeMediaUrl(a.coverImage);
 
   // Разбиваем контент на параграфы для лучшего отображения

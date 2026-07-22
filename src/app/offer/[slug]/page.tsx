@@ -1,3 +1,6 @@
+import { db } from "@/db";
+import { offers, reviews } from "@/db/schema";
+import { eq, and, avg } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatMoney, formatDays, categoryLabels, borrowerLabels, generateSeoTags, normalizeMediaUrl } from "@/lib/utils";
@@ -6,7 +9,6 @@ import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import SimilarOffers from "@/components/SimilarOffers";
 import FavoriteButton from "@/components/FavoriteButton";
-import { getApprovedOfferRating, getOfferBySlug, getOfferSeoBySlug } from "@/lib/cached-data";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -15,16 +17,17 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const o = await getOfferSeoBySlug(slug);
+  const offer = await db.select().from(offers).where(eq(offers.slug, slug)).limit(1);
 
-  if (!o) {
+  if (offer.length === 0) {
     return { title: "Предложение не найдено" };
   }
 
+  const o = offer[0];
   const seoTags = o.seoKeywords
     ? o.seoKeywords.split(",").map((t: string) => t.trim()).filter(Boolean)
     : generateSeoTags(o.category, o.title, o.amountMax, o.freeTermDays);
-
+  
   return {
     title: `${o.title} — ${categoryLabels[o.category]} | Космозайм`,
     description: o.description || `${o.title}: ставка от ${o.rate}%, сумма до ${o.amountMax.toLocaleString()} ₽. Оформите онлайн на Космозайм.`,
@@ -32,23 +35,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default async function OfferPage({ params }: PageProps) {
   const { slug } = await params;
-  const o = await getOfferBySlug(slug);
+  const offer = await db
+    .select()
+    .from(offers)
+    .where(and(eq(offers.slug, slug), eq(offers.isActive, true)))
+    .limit(1);
 
-  if (!o) {
+  if (offer.length === 0) {
     notFound();
   }
 
+  const o = offer[0];
   const logoUrl = normalizeMediaUrl(o.logoUrl);
 
+  // Генерируем SEO-теги
   const seoTags = o.seoKeywords
-    ? o.seoKeywords.split(",").map((t: string) => t.trim()).filter(Boolean)
+    ? o.seoKeywords.split(",").map((t) => t.trim()).filter(Boolean)
     : generateSeoTags(o.category, o.title, o.amountMax, o.freeTermDays);
 
-  const rating = await getApprovedOfferRating(o.id);
+  // Get average rating
+  const avgRating = await db
+    .select({ avg: avg(reviews.rating) })
+    .from(reviews)
+    .where(and(eq(reviews.offerId, o.id), eq(reviews.isApproved, true)));
+
+  const rating = avgRating[0]?.avg ? parseFloat(String(avgRating[0].avg)) : null;
 
   // Category URL
   const categoryUrls: Record<string, string> = {

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   keywords: "кредиты, банковский кредит, потребительский кредит, кредит онлайн",
 };
 
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
 
 async function OffersList({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;

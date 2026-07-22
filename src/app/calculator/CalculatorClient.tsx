@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import { formatMoney, formatDays, categoryLabels, normalizeMediaUrl } from "@/lib/utils";
 import { useGeo } from "@/components/GeoProvider";
 import type { Offer } from "@/db/schema";
@@ -10,7 +10,7 @@ export default function CalculatorClient() {
   const [amount, setAmount] = useState(30000);
   const [termDays, setTermDays] = useState(30);
   const [rate, setRate] = useState(1);
-  const [allOffers, setAllOffers] = useState<Offer[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(false);
 
   const totalInterest = (amount * rate * termDays) / 100;
@@ -21,31 +21,19 @@ export default function CalculatorClient() {
     const fetchOffers = async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams();
-        if (geo.city) params.set("city", geo.city);
-        if (geo.region) params.set("region", geo.region);
-        const query = params.toString() ? `?${params.toString()}` : "";
-        const res = await fetch(`/api/offers${query}`);
+        const cityParam = geo.city ? `&city=${encodeURIComponent(geo.city)}` : "";
+        const res = await fetch(`/api/offers?amount=${amount}&term=${termDays}${cityParam}`);
         const data = await res.json();
-        setAllOffers(Array.isArray(data) ? data : []);
+        setOffers(data);
       } catch {
-        setAllOffers([]);
+        setOffers([]);
       }
       setLoading(false);
     };
 
-    fetchOffers();
-  }, [geo.city, geo.region]);
-
-  const offers = useMemo(
-    () =>
-      allOffers.filter((offer) => {
-        const amountMatch = offer.amountMin <= amount && offer.amountMax >= amount;
-        const termMatch = offer.termMinDays <= termDays && offer.termMaxDays >= termDays;
-        return amountMatch && termMatch;
-      }),
-    [allOffers, amount, termDays]
-  );
+    const timer = setTimeout(fetchOffers, 300);
+    return () => clearTimeout(timer);
+  }, [amount, termDays, geo.city]);
 
   return (
     <div className="grid lg:grid-cols-2 gap-8">
