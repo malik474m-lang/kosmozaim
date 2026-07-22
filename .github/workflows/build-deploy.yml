@@ -1,0 +1,60 @@
+name: Build and Deploy to Jino
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create .env for build
+        run: |
+          echo "DATABASE_URL=mysql://fake:fake@localhost/fake" > .env
+          echo "NEXT_PUBLIC_SITE_URL=https://kosmozaim.ru" >> .env
+          echo "NEXT_PUBLIC_YANDEX_METRIKA_ID=${{ secrets.YANDEX_METRIKA_ID }}" >> .env
+          echo "NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=${{ secrets.GOOGLE_ANALYTICS_ID }}" >> .env
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Package build
+        run: tar -czf next-build.tar.gz .next public package.json package-lock.json next.config.ts app.js
+
+      - name: Deploy to Jino via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.JINO_HOST }}
+          username: ${{ secrets.JINO_USER }}
+          key: ${{ secrets.JINO_SSH_KEY }}
+          source: next-build.tar.gz
+          target: ~/domains/kosmozaim.ru/
+
+      - name: Unpack and restart on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.JINO_HOST }}
+          username: ${{ secrets.JINO_USER }}
+          key: ${{ secrets.JINO_SSH_KEY }}
+          script: |
+            cd ~/domains/kosmozaim.ru
+            rm -rf .next
+            tar -xzf next-build.tar.gz
+            rm -f next-build.tar.gz
+            touch tmp/restart.txt
+            echo "Deploy complete: $(date)"
