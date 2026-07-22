@@ -102,7 +102,9 @@ async function generateWithYandexGPT(topic: string): Promise<string | null> {
 - Упоминай актуальное законодательство РФ
 - В конце статьи упомяни, что на сайте Космозайм можно сравнить предложения
 - НЕ используй таблицы
-- НЕ используй markdown разметку (звёздочки, решётки)
+- НЕ используй markdown разметку
+- НЕ используй символы *, **, ***, #, ##, ###, -, • как элементы оформления текста
+- НЕ выделяй слова звёздочками
 - Пиши обычным текстом с переносами строк
 - Подзаголовки пиши на отдельной строке без спецсимволов`,
             },
@@ -111,8 +113,9 @@ async function generateWithYandexGPT(topic: string): Promise<string | null> {
               text: `Напиши развёрнутую статью на тему "${topic}". 
 Статья должна быть подробной, минимум 1500 слов. 
 В статье не используй таблицы. 
+Не используй звёздочки, markdown-разметку, маркеры списков и символы оформления.
 Добавляй практические советы и конкретные примеры.
-Статья для читателей из России.`,
+Статья для читателей из России.`, 
             },
           ],
         }),
@@ -224,6 +227,27 @@ async function generateImageWithYandexART(topic: string): Promise<string | null>
   }
 }
 
+function sanitizeGeneratedArticle(content: string): string {
+  return content
+    // убираем markdown-заголовки
+    .replace(/^#{1,6}\s*/gm, "")
+    // убираем markdown-выделение
+    .replace(/\*\*\*/g, "")
+    .replace(/\*\*/g, "")
+    .replace(/__/g, "")
+    .replace(/~~/g, "")
+    // убираем одинарные звёздочки и обратные кавычки
+    .replace(/\*/g, "")
+    .replace(/`/g, "")
+    // убираем markdown-маркеры списков в начале строки
+    .replace(/^\s*[-•+]\s+/gm, "")
+    // убираем лишние пробелы перед знаками препинания
+    .replace(/\s+([.,!?;:])/g, "$1")
+    // схлопываем слишком большие пустые блоки
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 // =============================================
 // Генерация через GigaChat
 // =============================================
@@ -259,12 +283,14 @@ async function generateWithGigaChat(topic: string): Promise<string | null> {
             role: "system",
             content: `Ты — финансовый журналист для сайта Космозайм. 
 Пиши развёрнутые статьи минимум 1500 слов. 
-Без таблиц, без markdown. Подзаголовки на отдельной строке.
+Без таблиц, без markdown. 
+Не используй символы *, **, ***, #, -, • и другие элементы markdown-разметки.
+Подзаголовки на отдельной строке.
 Добавляй примеры и факты.`,
           },
           {
             role: "user",
-            content: `Напиши развёрнутую статью на тему "${topic}". В статье не используй таблицы. Минимум 1500 слов. Практические советы и примеры для России.`,
+            content: `Напиши развёрнутую статью на тему "${topic}". В статье не используй таблицы. Минимум 1500 слов. Не используй звёздочки, markdown-разметку и символы оформления. Практические советы и примеры для России.`, 
           },
         ],
         temperature: 0.4,
@@ -385,12 +411,15 @@ export async function POST(request: NextRequest) {
       content = template.content;
       excerpt = template.excerpt;
     } else {
+      content = sanitizeGeneratedArticle(content);
       const paragraphs = content.split("\n\n").filter(Boolean);
       excerpt =
         paragraphs.length > 1
           ? paragraphs[1].slice(0, 200) + "..."
           : content.slice(0, 200) + "...";
     }
+
+    content = sanitizeGeneratedArticle(content);
 
     // Генерируем картинку через YandexART
     let coverImage = "";
