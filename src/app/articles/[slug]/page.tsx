@@ -5,7 +5,9 @@ import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { normalizeMediaUrl } from "@/lib/utils";
 import { autoLinkText } from "@/lib/autolinks";
-import { getPublishedArticleBySlug } from "@/lib/cached-data";
+import { db } from "@/db";
+import { articles } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -13,7 +15,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const article = await getPublishedArticleBySlug(slug);
+  const _r = await db.select().from(articles).where(and(eq(articles.slug, slug), eq(articles.isPublished, true))).limit(1); const article = _r[0] ?? null;
 
   if (!article) {
     return { title: "Статья не найдена" };
@@ -33,11 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function ArticlePage({ params }: PageProps) {
   const { slug } = await params;
-  const a = await getPublishedArticleBySlug(slug);
+  const _r2 = await db.select().from(articles).where(and(eq(articles.slug, slug), eq(articles.isPublished, true))).limit(1); const a = _r2[0] ?? null;
 
   if (!a) {
     notFound();

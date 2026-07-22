@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { subscribers } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,13 +11,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Некорректный email" }, { status: 400 });
     }
 
-    await db
-      .insert(subscribers)
-      .values({ email })
-      .onConflictDoNothing();
+    const existing = await db
+      .select()
+      .from(subscribers)
+      .where(eq(subscribers.email, email))
+      .limit(1);
+
+    if (existing.length === 0) {
+      await db.insert(subscribers).values({ email });
+    }
 
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (e) {
+    console.error(e);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }

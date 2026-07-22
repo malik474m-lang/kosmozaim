@@ -2,7 +2,9 @@ import Link from "next/link";
 import OfferCard from "@/components/OfferCard";
 import JsonLd from "@/components/JsonLd";
 import { normalizeMediaUrl } from "@/lib/utils";
-import { getHomeData } from "@/lib/cached-data";
+import { db } from "@/db";
+import { offers, articles } from "@/db/schema";
+import { eq, asc, desc } from "drizzle-orm";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,10 +13,11 @@ export const metadata: Metadata = {
     "Сравните лучшие предложения по займам, кредитам, кредитным и дебетовым картам. Калькулятор займа, удобные фильтры и актуальные условия.",
 };
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const { topOffers, latestArticles } = await getHomeData();
+  const topOffers = await db.select().from(offers).where(eq(offers.isActive, true)).orderBy(asc(offers.sortOrder)).limit(6);
+  const latestArticles = await db.select().from(articles).where(eq(articles.isPublished, true)).orderBy(desc(articles.createdAt)).limit(3);
 
   return (
     <>

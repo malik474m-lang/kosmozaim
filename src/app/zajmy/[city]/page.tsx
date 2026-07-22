@@ -12,10 +12,6 @@ interface PageProps {
   params: Promise<{ city: string }>;
 }
 
-export async function generateStaticParams() {
-  return cities.map((city) => ({ city: city.slug }));
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { city: citySlug } = await params;
   const city = getCityBySlug(citySlug);
@@ -35,8 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export const dynamicParams = true;
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function CityLoansPage({ params }: PageProps) {
   const { city: citySlug } = await params;
