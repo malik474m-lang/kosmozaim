@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   keywords: "дебетовые карты, дебетовая карта с кэшбеком, карта с бесплатным обслуживанием",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 async function OffersList({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;

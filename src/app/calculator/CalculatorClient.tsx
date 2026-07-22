@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatMoney, formatDays, categoryLabels, normalizeMediaUrl } from "@/lib/utils";
 import { useGeo } from "@/components/GeoProvider";
 import type { Offer } from "@/db/schema";
@@ -10,7 +10,7 @@ export default function CalculatorClient() {
   const [amount, setAmount] = useState(30000);
   const [termDays, setTermDays] = useState(30);
   const [rate, setRate] = useState(1);
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [allOffers, setAllOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(false);
 
   const totalInterest = (amount * rate * termDays) / 100;
@@ -21,19 +21,31 @@ export default function CalculatorClient() {
     const fetchOffers = async () => {
       setLoading(true);
       try {
-        const cityParam = geo.city ? `&city=${encodeURIComponent(geo.city)}` : "";
-        const res = await fetch(`/api/offers?amount=${amount}&term=${termDays}${cityParam}`);
+        const params = new URLSearchParams();
+        if (geo.city) params.set("city", geo.city);
+        if (geo.region) params.set("region", geo.region);
+        const query = params.toString() ? `?${params.toString()}` : "";
+        const res = await fetch(`/api/offers${query}`);
         const data = await res.json();
-        setOffers(data);
+        setAllOffers(Array.isArray(data) ? data : []);
       } catch {
-        setOffers([]);
+        setAllOffers([]);
       }
       setLoading(false);
     };
 
-    const timer = setTimeout(fetchOffers, 300);
-    return () => clearTimeout(timer);
-  }, [amount, termDays, geo.city]);
+    fetchOffers();
+  }, [geo.city, geo.region]);
+
+  const offers = useMemo(
+    () =>
+      allOffers.filter((offer) => {
+        const amountMatch = offer.amountMin <= amount && offer.amountMax >= amount;
+        const termMatch = offer.termMinDays <= termDays && offer.termMaxDays >= termDays;
+        return amountMatch && termMatch;
+      }),
+    [allOffers, amount, termDays]
+  );
 
   return (
     <div className="grid lg:grid-cols-2 gap-8">
