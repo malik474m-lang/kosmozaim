@@ -6,9 +6,7 @@ import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import SimilarOffers from "@/components/SimilarOffers";
 import FavoriteButton from "@/components/FavoriteButton";
-import { db } from "@/db";
-import { offers, reviews } from "@/db/schema";
-import { eq, and, avg } from "drizzle-orm";
+import { getApprovedOfferRating, getOfferBySlug, getOfferSeoBySlug } from "@/lib/cached-data";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -17,7 +15,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const _os = await db.select().from(offers).where(eq(offers.slug, slug)).limit(1); const o = _os[0] ?? null;
+  const o = await getOfferSeoBySlug(slug);
 
   if (!o) {
     return { title: "Предложение не найдено" };
@@ -34,11 +32,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function OfferPage({ params }: PageProps) {
   const { slug } = await params;
-  const _ob = await db.select().from(offers).where(and(eq(offers.slug, slug), eq(offers.isActive, true))).limit(1); const o = _ob[0] ?? null;
+  const o = await getOfferBySlug(slug);
 
   if (!o) {
     notFound();
@@ -50,7 +48,7 @@ export default async function OfferPage({ params }: PageProps) {
     ? o.seoKeywords.split(",").map((t: string) => t.trim()).filter(Boolean)
     : generateSeoTags(o.category, o.title, o.amountMax, o.freeTermDays);
 
-  const _ar = await db.select({ avg: avg(reviews.rating) }).from(reviews).where(and(eq(reviews.offerId, o.id), eq(reviews.isApproved, true))); const rating = _ar[0]?.avg ? parseFloat(String(_ar[0].avg)) : null;
+  const rating = await getApprovedOfferRating(o.id);
 
   // Category URL
   const categoryUrls: Record<string, string> = {

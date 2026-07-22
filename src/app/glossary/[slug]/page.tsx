@@ -8,6 +8,10 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateStaticParams() {
+  return glossaryTerms.map((term) => ({ slug: term.slug }));
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const term = getTermBySlug(slug);

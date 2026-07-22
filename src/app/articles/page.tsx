@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { normalizeMediaUrl } from "@/lib/utils";
-import { db } from "@/db";
-import { articles } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { getPublishedArticles } from "@/lib/cached-data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,10 +10,10 @@ export const metadata: Metadata = {
   keywords: "финансовые статьи, статьи о кредитах, советы по займам",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export default async function ArticlesPage() {
-  const allArticles = await db.select().from(articles).where(eq(articles.isPublished, true)).orderBy(desc(articles.createdAt));
+  const allArticles = await getPublishedArticles();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
