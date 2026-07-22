@@ -1,11 +1,8 @@
-import { db } from "@/db";
-import { offers } from "@/db/schema";
-import { eq, and, gte, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import OfferCard from "@/components/OfferCard";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { loanTypes, getLoanTypeBySlug } from "@/lib/loanTypes";
+import TypeOffersClient from "./TypeOffersClient";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -37,22 +34,7 @@ export default async function LoanTypePage({ params }: PageProps) {
     notFound();
   }
 
-  // Строим условия фильтрации
-  const conditions = [eq(offers.isActive, true), eq(offers.category, "microloans")];
-
-  if (loanType.filterParams?.freeTermDays) {
-    conditions.push(gte(offers.freeTermDays, loanType.filterParams.freeTermDays));
-  }
-
-  const allOffers = await db
-    .select()
-    .from(offers)
-    .where(and(...conditions))
-    .orderBy(asc(offers.sortOrder));
-
-  // Другие типы займов для перелинковки
   const otherTypes = loanTypes.filter((t) => t.slug !== slug).slice(0, 6);
-
   const paragraphs = loanType.content.split("\n\n").filter(Boolean);
 
   return (
@@ -70,7 +52,6 @@ export default async function LoanTypePage({ params }: PageProps) {
         <p className="text-gray-600 text-lg">{loanType.description}</p>
       </div>
 
-      {/* Преимущества */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {loanType.features.map((feature, index) => (
           <div key={index} className="bg-white rounded-xl p-4 text-center border border-gray-100">
@@ -81,27 +62,12 @@ export default async function LoanTypePage({ params }: PageProps) {
         ))}
       </div>
 
-      {/* Предложения */}
       <h2 className="text-xl font-bold text-gray-900 mb-4">
         Лучшие предложения: {loanType.title.toLowerCase()}
       </h2>
 
-      {allOffers.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl mb-8">
-          <p className="text-gray-500">Предложения не найдены</p>
-          <Link href="/zajmy" className="text-primary hover:underline mt-2 inline-block">
-            Смотреть все займы →
-          </Link>
-        </div>
-      ) : (
-        <div className="grid gap-4 mb-8">
-          {allOffers.map((offer) => (
-            <OfferCard key={offer.id} offer={offer} />
-          ))}
-        </div>
-      )}
+      <TypeOffersClient filterParams={loanType.filterParams} />
 
-      {/* SEO контент */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
         <div className="prose prose-sm text-gray-600 max-w-none">
           {paragraphs.map((para, index) => {
@@ -129,7 +95,7 @@ export default async function LoanTypePage({ params }: PageProps) {
               return (
                 <ol key={index} className="list-decimal pl-5">
                   {para.split("\n").map((l, i) => (
-                    <li key={i}>{l.replace(/^\d+\.\s*/, "")}</li>
+                    <li key={i}>{l.replace(/^\d+\.\s*/,>
                   ))}
                 </ol>
               );
@@ -139,7 +105,6 @@ export default async function LoanTypePage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Другие типы займов */}
       <div className="bg-gray-50 rounded-xl p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-4">Другие виды займов</h2>
         <div className="flex flex-wrap gap-2">
