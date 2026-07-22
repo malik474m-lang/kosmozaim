@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       or(
         eq(offers.regions, ""),
         sql`${offers.regions} IS NULL`,
-        sql`${offers.regions} ILIKE ${"%" + city + "%"}`
+        sql`${offers.regions} LIKE ${"%" + city + "%"}`
       )!
     );
   }

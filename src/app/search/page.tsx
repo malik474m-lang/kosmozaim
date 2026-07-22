@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { offers, articles, type Offer, type Article } from "@/db/schema";
-import { eq, or, ilike, and } from "drizzle-orm";
+import { eq, or, like, and } from "drizzle-orm";
 import OfferCard from "@/components/OfferCard";
 import Link from "next/link";
 import { normalizeMediaUrl } from "@/lib/utils";
@@ -37,8 +37,8 @@ export default async function SearchPage({ searchParams }: PageProps) {
         and(
           eq(offers.isActive, true),
           or(
-            ilike(offers.title, searchPattern),
-            ilike(offers.description, searchPattern)
+            like(offers.title, searchPattern),
+            like(offers.description, searchPattern)
           )
         )
       );
@@ -50,9 +50,9 @@ export default async function SearchPage({ searchParams }: PageProps) {
         and(
           eq(articles.isPublished, true),
           or(
-            ilike(articles.title, searchPattern),
-            ilike(articles.excerpt, searchPattern),
-            ilike(articles.content, searchPattern)
+            like(articles.title, searchPattern),
+            like(articles.excerpt, searchPattern),
+            like(articles.content, searchPattern)
           )
         )
       );

@@ -1,3 +1,4 @@
+import { autoLinkText } from "@/lib/autolinks";
 import { db } from "@/db";
 import { articles } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -117,7 +118,7 @@ export default async function ArticlePage({ params }: PageProps) {
                     key={index}
                     className="text-xl font-bold text-gray-900 mt-8 mb-4"
                   >
-                    {paragraph}
+                    {autoLinkText(paragraph)}
                   </h2>
                 );
               }
@@ -132,7 +133,7 @@ export default async function ArticlePage({ params }: PageProps) {
                       if (!text) return null;
                       return (
                         <li key={i} className="text-gray-700">
-                          {text}
+                          {autoLinkText(text)}
                         </li>
                       );
                     })}
@@ -150,7 +151,7 @@ export default async function ArticlePage({ params }: PageProps) {
                       if (!text) return null;
                       return (
                         <li key={i} className="text-gray-700">
-                          {text}
+                          {autoLinkText(text)}
                         </li>
                       );
                     })}
@@ -160,7 +161,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
               return (
                 <p key={index} className="my-4 leading-relaxed">
-                  {paragraph}
+                  {autoLinkText(paragraph)}
                 </p>
               );
             })}
