@@ -29,7 +29,7 @@ export default function AdminArticles() {
   // AI Generation
   const [showGenerator, setShowGenerator] = useState(false);
   const [topics, setTopics] = useState<TopicCategory[]>([]);
-  const [aiStatus, setAiStatus] = useState<{ yandexGPT: boolean; gigaChat: boolean }>({ yandexGPT: false, gigaChat: false });
+  const [aiStatus, setAiStatus] = useState<{ yandexGPT: boolean; gigaChat: boolean; yandexART: boolean }>({ yandexGPT: false, gigaChat: false, yandexART: false });
   const [generating, setGenerating] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedTopic, setSelectedTopic] = useState("");
@@ -55,7 +55,7 @@ export default function AdminArticles() {
       if (res.ok) {
         const data = await res.json();
         setTopics(data.topics);
-        setAiStatus(data.aiStatus || { yandexGPT: false, gigaChat: false });
+        setAiStatus(data.aiStatus || { yandexGPT: false, gigaChat: false, yandexART: false });
       }
     } catch {
       /* ignore */
@@ -136,10 +136,9 @@ export default function AdminArticles() {
         setCustomTopic("");
         setSelectedTopic("");
         fetchArticles();
+        const imageInfo = data.hasImage ? "\n📷 Обложка сгенерирована YandexART" : "\n📷 Без обложки";
         alert(
-          `Статья "${data.article.title}" создана!\n${
-            data.usedAI ? "Использован AI" : "Использован шаблон"
-          }\n\nПроверьте и опубликуйте в редакторе.`
+          `Статья "${data.article.title}" создана!\n🤖 ${data.aiProvider || "Шаблон"}${imageInfo}\n\nПроверьте и опубликуйте в редакторе.`
         );
       } else {
         alert("Ошибка генерации статьи");
@@ -192,6 +191,11 @@ export default function AdminArticles() {
                 {aiStatus.yandexGPT && (
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
                     YandexGPT
+                  </span>
+                )}
+                {aiStatus.yandexART && (
+                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                    YandexART
                   </span>
                 )}
                 {aiStatus.gigaChat && (
@@ -271,10 +275,11 @@ export default function AdminArticles() {
               <div className="bg-blue-50 text-blue-700 p-3 rounded-lg text-sm">
                 <p className="font-medium mb-1">ℹ️ Как это работает:</p>
                 <ul className="text-xs space-y-1">
-                  <li>• Статья генерируется {aiStatus.yandexGPT || aiStatus.gigaChat ? "с помощью AI" : "по качественному шаблону"}</li>
-                  <li>• Автоматически создаются SEO-теги</li>
+                  <li>• Текст: {aiStatus.yandexGPT ? "YandexGPT" : aiStatus.gigaChat ? "GigaChat" : "шаблон"}</li>
+                  <li>• Картинка: {aiStatus.yandexART ? "YandexART (авто)" : "без картинки"}</li>
+                  <li>• SEO-теги создаются автоматически</li>
                   <li>• Статья сохраняется как черновик</li>
-                  <li>• Проверьте и опубликуйте вручную</li>
+                  <li>• Генерация может занять до 60 секунд</li>
                 </ul>
               </div>
             </div>
