@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { normalizeMediaUrl } from "@/lib/utils";
+import { autoLinkText } from "@/lib/autolinks";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -102,10 +103,9 @@ export default async function ArticlePage({ params }: PageProps) {
             </div>
           </header>
 
-          {/* Содержание статьи */}
+          {/* Содержание статьи с автоперелинковкой */}
           <div className="prose prose-lg max-w-none text-gray-700">
             {paragraphs.map((paragraph, index) => {
-              // Проверяем, является ли это заголовком (начинается с заглавной и короткий)
               const isHeading =
                 paragraph.length < 100 &&
                 !paragraph.includes(".") &&
@@ -122,7 +122,6 @@ export default async function ArticlePage({ params }: PageProps) {
                 );
               }
 
-              // Проверяем, является ли это списком
               if (paragraph.includes("\n-") || paragraph.includes("\n•")) {
                 const lines = paragraph.split("\n");
                 return (
@@ -132,7 +131,7 @@ export default async function ArticlePage({ params }: PageProps) {
                       if (!text) return null;
                       return (
                         <li key={i} className="text-gray-700">
-                          {text}
+                          {autoLinkText(text)}
                         </li>
                       );
                     })}
@@ -140,7 +139,6 @@ export default async function ArticlePage({ params }: PageProps) {
                 );
               }
 
-              // Проверяем нумерованный список
               if (/^\d+\.\s/.test(paragraph) || paragraph.includes("\n1.")) {
                 const lines = paragraph.split("\n");
                 return (
@@ -150,7 +148,7 @@ export default async function ArticlePage({ params }: PageProps) {
                       if (!text) return null;
                       return (
                         <li key={i} className="text-gray-700">
-                          {text}
+                          {autoLinkText(text)}
                         </li>
                       );
                     })}
@@ -160,7 +158,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
               return (
                 <p key={index} className="my-4 leading-relaxed">
-                  {paragraph}
+                  {autoLinkText(paragraph)}
                 </p>
               );
             })}
