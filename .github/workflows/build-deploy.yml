@@ -1,4 +1,4 @@
-name: Build and Deploy to Jino
+name: Build Kosmozaim
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -57,25 +57,9 @@ jobs:
       - name: Package build
         run: tar -czf next-build.tar.gz .next public package.json package-lock.json next.config.ts app.js
 
-      - name: Deploy to Jino via SSH
-        uses: appleboy/scp-action@v0.1.7
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
-          host: ${{ secrets.JINO_HOST }}
-          username: ${{ secrets.JINO_USER }}
-          key: ${{ secrets.JINO_SSH_KEY }}
-          source: next-build.tar.gz
-          target: ~/domains/kosmozaim.ru/
-
-      - name: Unpack and restart on server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.JINO_HOST }}
-          username: ${{ secrets.JINO_USER }}
-          key: ${{ secrets.JINO_SSH_KEY }}
-          script: |
-            cd ~/domains/kosmozaim.ru
-            rm -rf .next
-            tar -xzf next-build.tar.gz
-            rm -f next-build.tar.gz
-            touch tmp/restart.txt
-            echo "Deploy complete: $(date)"
+          name: next-build
+          path: next-build.tar.gz
+          retention-days: 7
