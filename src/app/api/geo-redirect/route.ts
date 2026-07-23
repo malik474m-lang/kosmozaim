@@ -5,49 +5,16 @@ import { eq, and } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-async function getCountryByIP(ip: string): Promise<string | null> {
-  if (
-    ip === "127.0.0.1" ||
-    ip === "::1" ||
-    ip.startsWith("192.168") ||
-    ip.startsWith("10.") ||
-    ip.startsWith("172.")
-  ) {
-    return null;
-  }
-
-  try {
-    const response = await fetch(
-      `http://ip-api.com/json/${ip}?fields=countryCode`,
-      { signal: AbortSignal.timeout(3000) }
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.countryCode || null;
-    }
-  } catch (error) {
-    console.error("Error fetching geo data:", error);
-  }
-
-  return null;
-}
-
 export async function GET(request: NextRequest) {
   try {
-    const forwarded = request.headers.get("x-forwarded-for");
-    const ip =
-      forwarded?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "127.0.0.1";
+    const cc = request.nextUrl.searchParams.get("cc");
 
-    const countryCode = await getCountryByIP(ip);
-
-    if (!countryCode) {
+    if (!cc) {
       return NextResponse.json({ redirect: null, country: null });
     }
 
-    // 1. Точное совпадение по стране
+    const countryCode = cc.toUpperCase();
+
     const exactMatch = await db
       .select()
       .from(geoRedirects)
@@ -68,11 +35,9 @@ export async function GET(request: NextRequest) {
           countryName: match.countryName,
         });
       }
-      // Пустой URL = исключение, не редиректим
       return NextResponse.json({ redirect: null, country: countryCode });
     }
 
-    // 2. Wildcard * = все остальные страны
     const wildcardMatch = await db
       .select()
       .from(geoRedirects)
