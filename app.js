@@ -1,6 +1,7 @@
 const { createServer } = require("http");
 const { parse } = require("url");
 const next = require("next");
+const { checkRedirect } = require("./geo-check");
 
 const dev = false;
 const hostname = "0.0.0.0";
@@ -12,6 +13,12 @@ const handle = app.getRequestHandler();
 app.prepare().then(() => {
   createServer(async (req, res) => {
     try {
+      const redirectUrl = await checkRedirect(req);
+      if (redirectUrl) {
+        res.writeHead(302, { Location: redirectUrl });
+        res.end();
+        return;
+      }
       const parsedUrl = parse(req.url, true);
       await handle(req, res, parsedUrl);
     } catch (err) {
@@ -20,6 +27,6 @@ app.prepare().then(() => {
       res.end("internal server error");
     }
   }).listen(port, () => {
-    console.log(`> Ready on http://${hostname}:${port}`);
+    console.log("> Ready on http://" + hostname + ":" + port);
   });
 });
