@@ -7,8 +7,9 @@ import AdminArticles from "./AdminArticles";
 import AdminStats from "./AdminStats";
 import AdminSubscribers from "./AdminSubscribers";
 import AdminReviews from "./AdminReviews";
+import AdminGeoRedirects from "./AdminGeoRedirects";
 
-type Tab = "offers" | "articles" | "reviews" | "stats" | "subscribers";
+type Tab = "offers" | "articles" | "reviews" | "stats" | "subscribers" | "geo";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -46,7 +47,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Admin Header */}
       <div className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -62,13 +62,12 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-6">
+          <div className="flex space-x-4 overflow-x-auto">
             <button
               onClick={() => setActiveTab("offers")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                 activeTab === "offers"
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
@@ -78,7 +77,7 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab("articles")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                 activeTab === "articles"
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
@@ -88,7 +87,7 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab("reviews")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                 activeTab === "reviews"
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
@@ -97,8 +96,18 @@ export default function AdminDashboard() {
               ⭐ Отзывы
             </button>
             <button
+              onClick={() => setActiveTab("geo")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === "geo"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              🌍 Гео-редиректы
+            </button>
+            <button
               onClick={() => setActiveTab("stats")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                 activeTab === "stats"
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
@@ -108,7 +117,7 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab("subscribers")}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                 activeTab === "subscribers"
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
@@ -120,11 +129,11 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === "offers" && <AdminOffers />}
         {activeTab === "articles" && <AdminArticles />}
         {activeTab === "reviews" && <AdminReviews />}
+        {activeTab === "geo" && <AdminGeoRedirects />}
         {activeTab === "stats" && <AdminStats />}
         {activeTab === "subscribers" && <AdminSubscribers />}
       </div>

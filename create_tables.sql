@@ -1,0 +1,75 @@
+CREATE TABLE IF NOT EXISTS offers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) NOT NULL UNIQUE,
+  category ENUM('microloans', 'credits', 'credit_cards', 'debit_cards') NOT NULL,
+  amount_min INT NOT NULL DEFAULT 1000,
+  amount_max INT NOT NULL DEFAULT 100000,
+  term_min_days INT NOT NULL DEFAULT 1,
+  term_max_days INT NOT NULL DEFAULT 365,
+  psk DECIMAL(6,2) NOT NULL DEFAULT 0,
+  rate DECIMAL(6,2) NOT NULL DEFAULT 0,
+  free_term_days INT NOT NULL DEFAULT 0,
+  logo_url TEXT,
+  affiliate_url TEXT NOT NULL,
+  borrower_category ENUM('employed', 'unemployed', 'pensioner', 'student', 'self_employed', 'any') NOT NULL DEFAULT 'any',
+  description TEXT,
+  seo_keywords TEXT,
+  regions TEXT,
+  rating DECIMAL(3,1) NOT NULL DEFAULT 0,
+  review_count INT NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS articles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(500) NOT NULL,
+  slug VARCHAR(500) NOT NULL UNIQUE,
+  excerpt TEXT,
+  content TEXT NOT NULL,
+  meta_title VARCHAR(255),
+  meta_description TEXT,
+  cover_image TEXT,
+  is_published BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS admin_users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS click_stats (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  offer_id INT NOT NULL,
+  clicked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  user_agent TEXT,
+  referer TEXT,
+  INDEX idx_offer_id (offer_id),
+  INDEX idx_clicked_at (clicked_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS subscribers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  offer_id INT NOT NULL,
+  author_name VARCHAR(100) NOT NULL,
+  rating INT NOT NULL DEFAULT 5,
+  comment TEXT NOT NULL,
+  is_approved BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_offer_id (offer_id),
+  INDEX idx_approved (is_approved)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

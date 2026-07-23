@@ -91,3 +91,14 @@ export type ClickStat = typeof clickStats.$inferSelect;
 export type Subscriber = typeof subscribers.$inferSelect;
 export type Review = typeof reviews.$inferSelect;
 export type NewReview = typeof reviews.$inferInsert;
+
+export const geoRedirects = mysqlTable("geo_redirects", {
+  id: serial("id").primaryKey(),
+  countryCode: varchar("country_code", { length: 10 }).notNull(),
+  countryName: varchar("country_name", { length: 100 }).notNull().default(""),
+  redirectUrl: text("redirect_url").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type GeoRedirect = typeof geoRedirects.$inferSelect;
