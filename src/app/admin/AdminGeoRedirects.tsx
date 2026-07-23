@@ -12,6 +12,7 @@ interface GeoRedirect {
 }
 
 const COUNTRY_PRESETS = [
+  { code: "RU", name: "Россия" },
   { code: "UA", name: "Украина" },
   { code: "BY", name: "Беларусь" },
   { code: "KZ", name: "Казахстан" },
@@ -28,12 +29,14 @@ const COUNTRY_PRESETS = [
   { code: "GB", name: "Великобритания" },
 ];
 
-function getFlagEmoji(countryCode: string): string {
-  const codePoints = countryCode
-    .toUpperCase()
-    .split("")
-    .map((char) => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
+function getFlagEmoji(cc: string): string {
+  if (cc === "*") return "🌍";
+  return String.fromCodePoint(
+    ...cc
+      .toUpperCase()
+      .split("")
+      .map((c) => 127397 + c.charCodeAt(0))
+  );
 }
 
 export default function AdminGeoRedirects() {
@@ -41,6 +44,9 @@ export default function AdminGeoRedirects() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [formMode, setFormMode] = useState<
+    "wildcard" | "exclude" | "specific"
+  >("specific");
   const [formData, setFormData] = useState({
     countryCode: "",
     countryName: "",
@@ -56,53 +62,63 @@ export default function AdminGeoRedirects() {
   async function loadRedirects() {
     try {
       const res = await fetch("/api/admin/geo-redirects");
-      if (res.ok) {
-        const data = await res.json();
-        setRedirects(data);
-      }
-    } catch (error) {
-      console.error("Error loading redirects:", error);
+      if (res.ok) setRedirects(await res.json());
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   }
 
   function handlePresetSelect(code: string) {
-    const preset = COUNTRY_PRESETS.find((p) => p.code === code);
-    if (preset) {
+    const p = COUNTRY_PRESETS.find((x) => x.code === code);
+    if (p)
       setFormData((prev) => ({
         ...prev,
-        countryCode: preset.code,
-        countryName: preset.name,
+        countryCode: p.code,
+        countryName: p.name,
       }));
-    }
+  }
+
+  function handleModeChange(mode: "wildcard" | "exclude" | "specific") {
+    setFormMode(mode);
+    if (mode === "wildcard")
+      setFormData((p) => ({
+        ...p,
+        countryCode: "*",
+        countryName: "Все страны",
+      }));
+    else if (mode === "exclude")
+      setFormData((p) => ({
+        ...p,
+        countryCode: "",
+        countryName: "",
+        redirectUrl: "",
+      }));
+    else setFormData((p) => ({ ...p, countryCode: "", countryName: "" }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-
     try {
       const url = editingId
-        ? `/api/admin/geo-redirects/${editingId}`
+        ? "/api/admin/geo-redirects/" + editingId
         : "/api/admin/geo-redirects";
-      const method = editingId ? "PUT" : "POST";
-
       const res = await fetch(url, {
-        method,
+        method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
       if (res.ok) {
         await loadRedirects();
         resetForm();
       } else {
-        const error = await res.json();
-        alert(error.error || "Ошибка сохранения");
+        const err = await res.json();
+        alert(err.error || "Ошибка");
       }
-    } catch (error) {
-      console.error("Error saving redirect:", error);
+    } catch (e) {
+      console.error(e);
       alert("Ошибка сохранения");
     } finally {
       setSaving(false);
@@ -110,42 +126,44 @@ export default function AdminGeoRedirects() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Удалить этот редирект?")) return;
-
+    if (!confirm("Удалить?")) return;
     try {
-      const res = await fetch(`/api/admin/geo-redirects/${id}`, {
+      const res = await fetch("/api/admin/geo-redirects/" + id, {
         method: "DELETE",
       });
-      if (res.ok) {
-        await loadRedirects();
-      }
-    } catch (error) {
-      console.error("Error deleting redirect:", error);
+      if (res.ok) await loadRedirects();
+    } catch (e) {
+      console.error(e);
     }
   }
 
-  async function handleToggleActive(redirect: GeoRedirect) {
+  async function handleToggleActive(r: GeoRedirect) {
     try {
-      const res = await fetch(`/api/admin/geo-redirects/${redirect.id}`, {
+      const res = await fetch("/api/admin/geo-redirects/" + r.id, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...redirect, isActive: !redirect.isActive }),
+        body: JSON.stringify({ ...r, isActive: !r.isActive }),
       });
-      if (res.ok) {
-        await loadRedirects();
-      }
-    } catch (error) {
-      console.error("Error toggling redirect:", error);
+      if (res.ok) await loadRedirects();
+    } catch (e) {
+      console.error(e);
     }
   }
 
-  function handleEdit(redirect: GeoRedirect) {
-    setEditingId(redirect.id);
+  function handleEdit(r: GeoRedirect) {
+    setEditingId(r.id);
+    setFormMode(
+      r.countryCode === "*"
+        ? "wildcard"
+        : !r.redirectUrl || !r.redirectUrl.trim()
+          ? "exclude"
+          : "specific"
+    );
     setFormData({
-      countryCode: redirect.countryCode,
-      countryName: redirect.countryName,
-      redirectUrl: redirect.redirectUrl,
-      isActive: redirect.isActive,
+      countryCode: r.countryCode,
+      countryName: r.countryName,
+      redirectUrl: r.redirectUrl,
+      isActive: r.isActive,
     });
     setShowForm(true);
   }
@@ -153,6 +171,7 @@ export default function AdminGeoRedirects() {
   function resetForm() {
     setShowForm(false);
     setEditingId(null);
+    setFormMode("specific");
     setFormData({
       countryCode: "",
       countryName: "",
@@ -161,99 +180,200 @@ export default function AdminGeoRedirects() {
     });
   }
 
-  if (loading) {
-    return <div className="text-center py-8">Загрузка...</div>;
-  }
+  const wildcardRule = redirects.find((r) => r.countryCode === "*");
+  const exceptions = redirects.filter(
+    (r) => r.countryCode !== "*" && (!r.redirectUrl || !r.redirectUrl.trim())
+  );
+  const specificRules = redirects.filter(
+    (r) => r.countryCode !== "*" && r.redirectUrl && r.redirectUrl.trim()
+  );
+
+  if (loading) return <div className="text-center py-8">Загрузка...</div>;
+
+  const modeBtn = (
+    m: "wildcard" | "exclude" | "specific",
+    icon: string,
+    label: string
+  ) => (
+    <button
+      type="button"
+      onClick={() => handleModeChange(m)}
+      className={
+        "px-4 py-2 rounded-lg text-sm font-medium " +
+        (formMode === m
+          ? "bg-primary text-white"
+          : "bg-gray-200 text-gray-700")
+      }
+    >
+      {icon} {label}
+    </button>
+  );
+
+  const statusBtn = (r: GeoRedirect) => (
+    <button
+      onClick={() => handleToggleActive(r)}
+      className={
+        "px-3 py-1 rounded-full text-xs font-medium " +
+        (r.isActive
+          ? "bg-green-100 text-green-700"
+          : "bg-gray-100 text-gray-500")
+      }
+    >
+      {r.isActive ? "Активен" : "Выключен"}
+    </button>
+  );
+
+  const actionBtns = (r: GeoRedirect) => (
+    <>
+      <button
+        onClick={() => handleEdit(r)}
+        className="text-primary hover:underline text-sm mr-3"
+      >
+        Изменить
+      </button>
+      <button
+        onClick={() => handleDelete(r.id)}
+        className="text-red-600 hover:underline text-sm"
+      >
+        Удалить
+      </button>
+    </>
+  );
+
+  const countryCell = (r: GeoRedirect) => (
+    <div className="flex items-center gap-2">
+      <span className="text-xl">{getFlagEmoji(r.countryCode)}</span>
+      <span className="font-medium">{r.countryName || r.countryCode}</span>
+      <span className="text-xs text-gray-400">{r.countryCode}</span>
+    </div>
+  );
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold">Гео-редиректы</h2>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm);
+            if (showForm) resetForm();
+          }}
           className="btn-primary text-sm"
         >
-          {showForm ? "Отмена" : "+ Добавить редирект"}
+          {showForm ? "Отмена" : "+ Добавить правило"}
         </button>
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <p className="text-sm text-blue-800">
-          <strong>Как это работает:</strong> Когда пользователь из указанной
-          страны заходит на сайт, он автоматически перенаправляется на указанный
-          URL. Код страны — двухбуквенный ISO код (например: UA, BY, KZ).
+          <strong>Как это работает:</strong>
         </p>
+        <ul className="text-sm text-blue-800 mt-2 space-y-1 list-disc list-inside">
+          <li>
+            <strong>Все кроме исключений</strong> — все страны редиректятся,
+            кроме исключений
+          </li>
+          <li>
+            <strong>Исключение</strong> — страна НЕ редиректится (например RU)
+          </li>
+          <li>
+            <strong>Конкретная страна</strong> — только эта страна редиректится
+            на свой URL
+          </li>
+        </ul>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-lg p-6 mb-6">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-gray-50 rounded-lg p-6 mb-6"
+        >
           <h3 className="font-semibold mb-4">
-            {editingId ? "Редактировать редирект" : "Новый редирект"}
+            {editingId ? "Редактировать" : "Новое правило"}
           </h3>
+          <div className="flex gap-2 mb-4">
+            {modeBtn("wildcard", "🌍", "Все кроме исключений")}
+            {modeBtn("exclude", "🛡️", "Исключение")}
+            {modeBtn("specific", "🎯", "Конкретная страна")}
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Код страны *</label>
-              <div className="flex gap-2">
+          {formMode !== "wildcard" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Код страны *
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.countryCode}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        countryCode: e.target.value.toUpperCase(),
+                      })
+                    }
+                    placeholder="RU"
+                    maxLength={2}
+                    className="input-field w-20"
+                    required
+                  />
+                  <select
+                    onChange={(e) => handlePresetSelect(e.target.value)}
+                    className="select-field flex-1"
+                    value=""
+                  >
+                    <option value="">Выбрать...</option>
+                    {COUNTRY_PRESETS.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name} ({c.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Название страны
+                </label>
                 <input
                   type="text"
-                  value={formData.countryCode}
+                  value={formData.countryName}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      countryCode: e.target.value.toUpperCase(),
-                    })
+                    setFormData({ ...formData, countryName: e.target.value })
                   }
-                  placeholder="UA"
-                  maxLength={2}
-                  className="input-field w-20"
-                  required
+                  placeholder="Россия"
+                  className="input-field"
                 />
-                <select
-                  onChange={(e) => handlePresetSelect(e.target.value)}
-                  className="select-field flex-1"
-                  value=""
-                >
-                  <option value="">Выбрать из списка...</option>
-                  {COUNTRY_PRESETS.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Название страны</label>
+          {formMode !== "exclude" && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">
+                URL для редиректа *
+              </label>
               <input
-                type="text"
-                value={formData.countryName}
+                type="url"
+                value={formData.redirectUrl}
                 onChange={(e) =>
-                  setFormData({ ...formData, countryName: e.target.value })
+                  setFormData({ ...formData, redirectUrl: e.target.value })
                 }
-                placeholder="Украина"
+                placeholder="https://example.com/"
                 className="input-field"
+                required
               />
             </div>
-          </div>
+          )}
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">URL для редиректа *</label>
-            <input
-              type="url"
-              value={formData.redirectUrl}
-              onChange={(e) =>
-                setFormData({ ...formData, redirectUrl: e.target.value })
-              }
-              placeholder="https://example.com/ua/"
-              className="input-field"
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Полный URL, куда перенаправлять пользователей из этой страны
-            </p>
-          </div>
+          {formMode === "exclude" && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-yellow-800">
+                Пользователи из этой страны <strong>не будут</strong>{" "}
+                перенаправлены
+              </p>
+            </div>
+          )}
 
           <div className="mb-4">
             <label className="flex items-center gap-2">
@@ -265,15 +385,19 @@ export default function AdminGeoRedirects() {
                 }
                 className="w-4 h-4"
               />
-              <span className="text-sm">Активен</span>
+              <span className="text-sm">Активно</span>
             </label>
           </div>
 
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? "Сохранение..." : editingId ? "Сохранить" : "Добавить"}
+              {saving ? "..." : editingId ? "Сохранить" : "Добавить"}
             </button>
-            <button type="button" onClick={resetForm} className="btn-secondary">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="btn-secondary"
+            >
               Отмена
             </button>
           </div>
@@ -283,75 +407,117 @@ export default function AdminGeoRedirects() {
       {redirects.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>Гео-редиректы не настроены</p>
-          <p className="text-sm mt-1">
-            Добавьте редирект, чтобы перенаправлять пользователей из других стран
-          </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-2">Страна</th>
-                <th className="text-left py-3 px-2">URL редиректа</th>
-                <th className="text-center py-3 px-2">Статус</th>
-                <th className="text-right py-3 px-2">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {redirects.map((redirect) => (
-                <tr key={redirect.id} className="border-b hover:bg-gray-50">
-                  <td className="py-3 px-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{getFlagEmoji(redirect.countryCode)}</span>
-                      <div>
-                        <div className="font-medium">
-                          {redirect.countryName || redirect.countryCode}
-                        </div>
-                        <div className="text-xs text-gray-500">{redirect.countryCode}</div>
+        <div className="space-y-6">
+          {wildcardRule && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">
+                Общее правило
+              </h3>
+              <div
+                className={
+                  "border rounded-lg p-4 " +
+                  (wildcardRule.isActive
+                    ? "bg-green-50 border-green-200"
+                    : "bg-gray-50 border-gray-200")
+                }
+              >
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">🌍</span>
+                    <div>
+                      <div className="font-semibold">
+                        Все страны →{" "}
+                        <a
+                          href={wildcardRule.redirectUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          {wildcardRule.redirectUrl}
+                        </a>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Кроме исключений ({exceptions.length} шт.)
                       </div>
                     </div>
-                  </td>
-                  <td className="py-3 px-2">
-                    <a
-                      href={redirect.redirectUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline text-sm break-all"
-                    >
-                      {redirect.redirectUrl}
-                    </a>
-                  </td>
-                  <td className="py-3 px-2 text-center">
-                    <button
-                      onClick={() => handleToggleActive(redirect)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        redirect.isActive
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      {redirect.isActive ? "Активен" : "Выключен"}
-                    </button>
-                  </td>
-                  <td className="py-3 px-2 text-right">
-                    <button
-                      onClick={() => handleEdit(redirect)}
-                      className="text-primary hover:underline text-sm mr-3"
-                    >
-                      Изменить
-                    </button>
-                    <button
-                      onClick={() => handleDelete(redirect.id)}
-                      className="text-red-600 hover:underline text-sm"
-                    >
-                      Удалить
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {statusBtn(wildcardRule)}
+                    {actionBtns(wildcardRule)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {exceptions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">
+                🛡️ Исключения
+              </h3>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2">Страна</th>
+                    <th className="text-center py-2 px-2">Статус</th>
+                    <th className="text-right py-2 px-2">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {exceptions.map((r) => (
+                    <tr key={r.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-2">{countryCell(r)}</td>
+                      <td className="py-2 px-2 text-center">{statusBtn(r)}</td>
+                      <td className="py-2 px-2 text-right">
+                        {actionBtns(r)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {specificRules.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">
+                🎯 Конкретные страны
+              </h3>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2">Страна</th>
+                    <th className="text-left py-2 px-2">URL</th>
+                    <th className="text-center py-2 px-2">Статус</th>
+                    <th className="text-right py-2 px-2">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {specificRules.map((r) => (
+                    <tr key={r.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-2">{countryCell(r)}</td>
+                      <td className="py-2 px-2">
+                        <a
+                          href={r.redirectUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline text-sm break-all"
+                        >
+                          {r.redirectUrl}
+                        </a>
+                      </td>
+                      <td className="py-2 px-2 text-center">{statusBtn(r)}</td>
+                      <td className="py-2 px-2 text-right">
+                        {actionBtns(r)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

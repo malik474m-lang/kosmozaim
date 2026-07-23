@@ -5,7 +5,6 @@ import { eq, and } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-// Внешний API для определения страны по IP
 async function getCountryByIP(ip: string): Promise<string | null> {
   if (
     ip === "127.0.0.1" ||
@@ -34,7 +33,6 @@ async function getCountryByIP(ip: string): Promise<string | null> {
   return null;
 }
 
-// GET - проверить нужен ли редирект для текущего пользователя
 export async function GET(request: NextRequest) {
   try {
     const forwarded = request.headers.get("x-forwarded-for");
@@ -49,7 +47,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ redirect: null, country: null });
     }
 
-    const redirect = await db
+    // 1. Точное совпадение по стране
+    const exactMatch = await db
       .select()
       .from(geoRedirects)
       .where(
@@ -60,11 +59,36 @@ export async function GET(request: NextRequest) {
       )
       .limit(1);
 
-    if (redirect.length > 0) {
+    if (exactMatch.length > 0) {
+      const match = exactMatch[0];
+      if (match.redirectUrl && match.redirectUrl.trim() !== "") {
+        return NextResponse.json({
+          redirect: match.redirectUrl,
+          country: countryCode,
+          countryName: match.countryName,
+        });
+      }
+      // Пустой URL = исключение, не редиректим
+      return NextResponse.json({ redirect: null, country: countryCode });
+    }
+
+    // 2. Wildcard * = все остальные страны
+    const wildcardMatch = await db
+      .select()
+      .from(geoRedirects)
+      .where(
+        and(
+          eq(geoRedirects.countryCode, "*"),
+          eq(geoRedirects.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (wildcardMatch.length > 0 && wildcardMatch[0].redirectUrl) {
       return NextResponse.json({
-        redirect: redirect[0].redirectUrl,
+        redirect: wildcardMatch[0].redirectUrl,
         country: countryCode,
-        countryName: redirect[0].countryName,
+        countryName: wildcardMatch[0].countryName || countryCode,
       });
     }
 
