@@ -1,0 +1,1 @@
+return NextResponse.json({success:true,generated:results.length,results});} add .
