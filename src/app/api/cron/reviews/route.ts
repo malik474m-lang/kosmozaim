@@ -25,3 +25,4 @@ for(let i=0;i<count;i++){const offer=active[Math.floor(Math.random()*active.leng
 let comment=await gen(offer.title,rating);if(!comment)comment=FB[Math.floor(Math.random()*FB.length)];
 await db.insert(reviews).values({offerId:offer.id,authorName:name,rating,comment,isApproved:true});
 results.push({offer:offer.title,name,rating,comment});}
+return NextResponse.json({success:true,generated:results.length,results});}
