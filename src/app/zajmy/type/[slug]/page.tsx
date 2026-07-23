@@ -78,28 +78,34 @@ export default async function LoanTypePage({ params }: PageProps) {
                 </h3>
               );
             }
+
             if (para.includes("\n-")) {
               const lines = para.split("\n");
               return (
                 <div key={index}>
                   {lines[0] && <p className="font-medium">{lines[0]}</p>}
                   <ul className="list-disc pl-5">
-                    {lines.slice(1).filter((l) => l.startsWith("-")).map((l, i) => (
-                      <li key={i}>{l.replace(/^-\s*/, "")}</li>
-                    ))}
+                    {lines
+                      .slice(1)
+                      .filter((l) => l.startsWith("-"))
+                      .map((l, i) => (
+                        <li key={i}>{l.replace(/^-\s*/, "")}</li>
+                      ))}
                   </ul>
                 </div>
               );
             }
+
             if (/^\d+\./.test(para)) {
               return (
                 <ol key={index} className="list-decimal pl-5">
                   {para.split("\n").map((l, i) => (
-                    <li key={i}>{l.replace(/^[0-9]+\.\s*/,>
+                    <li key={i}>{l.replace(/^[0-9]+\.\s*/, "")}</li>
                   ))}
                 </ol>
               );
             }
+
             return <p key={index}>{para}</p>;
           })}
         </div>
