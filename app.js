@@ -1,5 +1,6 @@
 const { createServer } = require("http");
 const { parse } = require("url");
+const { exec } = require("child_process");
 const next = require("next");
 const { checkRedirect } = require("./geo-check");
 
@@ -10,22 +11,48 @@ const port = parseInt(process.env.PORT, 10) || 3000;
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-// Auto-review cron
-const CRON_SECRET = process.env.CRON_SECRET || "kosmozaim-cron-2024";
-const REVIEW_INTERVAL = parseInt(process.env.REVIEW_INTERVAL_HOURS || "4") * 3600000;
-const REVIEW_COUNT = process.env.REVIEW_COUNT || "2";
+const REVIEW_INTERVAL_HOURS = parseInt(process.env.REVIEW_INTERVAL_HOURS || "4", 10);
+const REVIEW_COUNT = parseInt(process.env.REVIEW_COUNT || "2", 10);
+const REVIEW_INTERVAL_MS = REVIEW_INTERVAL_HOURS * 60 * 60 * 1000;
+
+function runReviewCron() {
+  const envLoader = "export $(cat .env | grep -v '^#' | xargs)";
+  const command = `${envLoader} && node review-cron.js ${REVIEW_COUNT}`;
+
+  exec(command, { cwd: process.cwd(), shell: "/bin/bash" }, (error, stdout, stderr) => {
+    const ts = new Date().toISOString();
+
+    if (stdout) {
+      console.log(`[REVIEW-CRON ${ts}] ${stdout.trim()}`);
+    }
+
+    if (stderr) {
+      console.error(`[REVIEW-CRON ${ts} STDERR] ${stderr.trim()}`);
+    }
+
+    if (error) {
+      console.error(`[REVIEW-CRON ${ts} ERROR] ${error.message}`);
+      return;
+    }
+
+    console.log(
+      `[REVIEW-CRON ${ts}] completed: ${REVIEW_COUNT} review(s), every ${REVIEW_INTERVAL_HOURS}h`
+    );
+  });
+}
 
 function startReviewCron() {
-  setInterval(async () => {
-    try {
-      const url = "http://127.0.0.1:" + port + "/api/cron/reviews?secret=" + CRON_SECRET + "&count=" + REVIEW_COUNT;
-      const r = await fetch(url);
-      const d = await r.json();
-      if (d.success) console.log("[CRON] Generated " + d.generated + " reviews");
-      else console.log("[CRON] Error:", d.error);
-    } catch (e) { console.error("[CRON] Failed:", e.message); }
-  }, REVIEW_INTERVAL);
-  console.log("> Review cron: every " + (REVIEW_INTERVAL/3600000) + "h, " + REVIEW_COUNT + " reviews");
+  console.log(
+    `> Review auto-generation enabled: every ${REVIEW_INTERVAL_HOURS}h, ${REVIEW_COUNT} review(s)`
+  );
+
+  setTimeout(() => {
+    runReviewCron();
+  }, 30000);
+
+  setInterval(() => {
+    runReviewCron();
+  }, REVIEW_INTERVAL_MS);
 }
 
 app.prepare().then(() => {
@@ -37,6 +64,7 @@ app.prepare().then(() => {
         res.end();
         return;
       }
+
       const parsedUrl = parse(req.url, true);
       await handle(req, res, parsedUrl);
     } catch (err) {
@@ -45,7 +73,7 @@ app.prepare().then(() => {
       res.end("internal server error");
     }
   }).listen(port, () => {
-    console.log("> Ready on http://" + hostname + ":" + port);
+    console.log(`> Ready on http://${hostname}:${port}`);
     startReviewCron();
   });
 });
