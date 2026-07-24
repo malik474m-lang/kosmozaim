@@ -12,15 +12,51 @@ const NAMES = [
   "Екатерина","Юлия","Дарья","Алина","Марина","Оксана","Виктория","Полина"
 ];
 
+const SITUATIONS = [
+  "срочно понадобились деньги до зарплаты",
+  "нужно было оплатить ремонт машины",
+  "неожиданные расходы на лечение",
+  "нужны были деньги на день рождения ребёнка",
+  "надо было срочно оплатить коммуналку",
+  "закончились деньги перед отпуском",
+  "пришлось чинить стиральную машину",
+  "нужно было заплатить за курсы",
+  "попал в сложную ситуацию с деньгами",
+  "не хватало на покупку телефона",
+  "понадобилось заплатить за страховку",
+  "потребовались деньги на переезд",
+  "нужно было срочно купить лекарства",
+  "не дотягивал до аванса",
+  "решил попробовать первый раз взять займ",
+  "подруга посоветовала этот сервис",
+  "нашёл через интернет, решил попробовать",
+  "раньше пользовался другим сервисом, перешёл сюда",
+  "коллега на работе порекомендовал",
+  "увидел рекламу, оформил заявку"
+];
+
+const STYLES = [
+  "коротко и по делу, 2 предложения",
+  "эмоционально и живо, 3 предложения",
+  "спокойно и рассудительно, 2-3 предложения",
+  "с конкретными деталями про скорость и удобство, 3 предложения",
+  "как будто рассказываешь другу, 2-3 предложения",
+  "сдержанно, отмечая плюсы и минусы, 3 предложения"
+];
+
 const FALLBACKS = [
-  "Оформил заявку, деньги пришли быстро. Всё прошло без проблем.",
-  "Понравился сервис, условия понятные. Одобрение пришло достаточно быстро.",
-  "Пользуюсь не первый раз, обычно всё проходит нормально.",
-  "Деньги пришли на карту быстро, приложение удобное.",
-  "Нормальный сервис, без лишних сложностей.",
-  "Оформление простое, поддержка отвечает оперативно.",
-  "Заявку заполнил быстро, решение пришло почти сразу.",
-  "В целом доволен, условия оказались понятными и прозрачными."
+  "Срочно нужны были деньги, оформил за пару минут. Перевели быстро, доволен.",
+  "Подавал заявку поздно вечером, одобрили почти сразу. На карту пришло минут через 15.",
+  "Брал первый раз, переживал. Но всё прошло нормально, условия понятные.",
+  "Коллега посоветовал, попробовал. Действительно удобно и без лишней бюрократии.",
+  "Не хватало до зарплаты, выручили. Погасил вовремя, никаких проблем.",
+  "Оформление простое, без кучи документов. Деньги на карте быстро.",
+  "Процент конечно не маленький, но когда срочно нужно — выручает.",
+  "Второй раз обращаюсь, в первый раз тоже всё было нормально.",
+  "Удобно что всё онлайн, никуда ходить не надо. Одобрили за минуты.",
+  "Подала заявку с телефона, пока ехала в автобусе. Деньги уже были на карте когда приехала.",
+  "Нормальный сервис, без сюрпризов. Главное вовремя погасить.",
+  "Друг брал тут раньше, порекомендовал. Я тоже оформил, всё ок."
 ];
 
 function rnd(arr) {
@@ -42,11 +78,14 @@ async function generateReviewText(title, rating) {
   if (!YA_KEY || !YA_FOLDER) return null;
 
   try {
+    const situation = rnd(SITUATIONS);
+    const style = rnd(STYLES);
+
     const mood =
-      rating >= 5 ? "очень положительный" :
-      rating === 4 ? "положительный" :
-      rating === 3 ? "нейтральный" :
-      "сдержанно-негативный";
+      rating === 5 ? "восторженный" :
+      rating === 4 ? "положительный, но сдержанный" :
+      rating === 3 ? "нейтральный, есть замечания" :
+      "недовольный, но вежливый";
 
     const res = await fetch(
       "https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
@@ -61,17 +100,26 @@ async function generateReviewText(title, rating) {
           modelUri: "gpt://" + YA_FOLDER + "/yandexgpt-lite/latest",
           completionOptions: {
             stream: false,
-            temperature: 0.8,
-            maxTokens: 180,
+            temperature: 0.9,
+            maxTokens: 150,
           },
           messages: [
             {
               role: "system",
-              text: "Ты обычный человек из России. Напиши короткий отзыв 2-4 предложения. Живой разговорный стиль. Без markdown, без звёздочек, без списков."
+              text: `Ты пишешь отзыв от лица реального человека из России.
+Правила:
+- Пиши ${style}
+- Тон: ${mood}
+- Ситуация: ${situation}
+- НЕ начинай с фразы "Пользуюсь ... несколько месяцев"
+- НЕ начинай с названия сервиса
+- Начни с описания ситуации или действия
+- Пиши живым разговорным языком, как в отзывах на Яндекс.Картах
+- Без markdown, без звёздочек, без кавычек вокруг всего текста`
             },
             {
               role: "user",
-              text: `Напиши ${mood} отзыв на финансовый сервис "${title}". Оценка ${rating} из 5. Коротко, естественно, как реальный пользователь.`
+              text: `Напиши отзыв на сервис "${title}". Оценка ${rating} из 5.`
             }
           ]
         })
@@ -81,13 +129,18 @@ async function generateReviewText(title, rating) {
     if (!res.ok) return null;
 
     const data = await res.json();
-    const text = data.result?.alternatives?.[0]?.message?.text || null;
+    let text = data.result?.alternatives?.[0]?.message?.text || null;
     if (!text) return null;
 
-    return String(text)
+    text = String(text)
       .replace(/\*/g, "")
+      .replace(/^["«]|["»]$/g, "")
       .replace(/\s+/g, " ")
       .trim();
+
+    if (text.length < 20) return null;
+
+    return text;
   } catch (e) {
     console.error("[AI ERROR]", e.message);
     return null;
@@ -96,21 +149,10 @@ async function generateReviewText(title, rating) {
 
 async function updateOfferRating(pool, offerId) {
   await pool.query(
-    `
-    UPDATE offers
-    SET
-      rating = (
-        SELECT COALESCE(ROUND(AVG(r.rating), 1), 0)
-        FROM reviews r
-        WHERE r.offer_id = ? AND r.is_approved = 1
-      ),
-      review_count = (
-        SELECT COUNT(*)
-        FROM reviews r
-        WHERE r.offer_id = ? AND r.is_approved = 1
-      )
-    WHERE id = ?
-    `,
+    `UPDATE offers SET
+      rating = (SELECT COALESCE(ROUND(AVG(r.rating), 1), 0) FROM reviews r WHERE r.offer_id = ? AND r.is_approved = 1),
+      review_count = (SELECT COUNT(*) FROM reviews r WHERE r.offer_id = ? AND r.is_approved = 1)
+    WHERE id = ?`,
     [offerId, offerId, offerId]
   );
 }
@@ -134,7 +176,7 @@ async function run() {
       process.exit(1);
     }
 
-    console.log(`[START] Генерация ${count} отзывов`);
+    console.log("[START] Генерация " + count + " отзывов");
 
     for (let i = 0; i < count; i++) {
       const offer = rnd(offers);
@@ -147,16 +189,12 @@ async function run() {
       }
 
       await pool.query(
-        `
-        INSERT INTO reviews (offer_id, author_name, rating, comment, is_approved)
-        VALUES (?, ?, ?, ?, 1)
-        `,
+        "INSERT INTO reviews (offer_id, author_name, rating, comment, is_approved) VALUES (?, ?, ?, ?, 1)",
         [offer.id, authorName, rating, comment]
       );
 
       await updateOfferRating(pool, offer.id);
-
-      console.log(`[OK] ${authorName} -> ${offer.title} (${rating}/5)`);
+      console.log("[OK] " + authorName + " -> " + offer.title + " (" + rating + "/5)");
     }
 
     console.log("[DONE] Отзывы созданы");
